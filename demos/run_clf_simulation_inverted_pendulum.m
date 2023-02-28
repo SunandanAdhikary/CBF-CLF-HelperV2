@@ -9,8 +9,10 @@ params.m = 1;    % [kg]       mass of pendulum
 params.g = 9.81; % [m/s^2]    acceleration of gravity
 params.b = 0.01; % [s*Nm/rad] friction coefficient
 
-params.u_max = 7;
+params.u_max = 27;
 params.u_min = -params.u_max;
+params.theta_max = +pi/4;
+params.theta_min = -pi/4;
 
 params.I = params.m*params.l^2/3; 
 
@@ -18,15 +20,20 @@ params.I = params.m*params.l^2/3;
 params.Kp=6;
 params.Kd=5;
 
-params.clf.rate = 3;
+params.clf.rate = 8;
 params.weight.slack = 100000;
+params.cbf.rate = 1;
+
+params.weight.rweight = params.clf.rate.*max(abs(params.u_max)).^-2;
+params.weight.qweight = params.clf.rate.*(max(abs(params.theta_max)).^-2);
+params.weight.nweight = params.clf.rate.*(max(abs(params.theta_max)).^-1*max(abs(params.u_max)).^-1);
 
 x0 = [0.76; 0.05];
 
 ip_sys = InvertedPendulum(params);
 
 odeFun = @ip_sys.dynamics;
-controller = @ip_sys.ctrlClfQp;
+controller = @ip_sys.ctrlCbfClfQp;
 odeSolver = @ode45;
 
 total_k = ceil(sim_t / dt);

@@ -24,23 +24,27 @@ function initSys(obj, symbolic_x, symbolic_f, symbolic_g, symbolic_cbf, symbolic
 
     % Obtaining Lie derivatives of CBF.
     if ~isempty(symbolic_cbf)
-        dcbf = simplify(jacobian(symbolic_cbf, symbolic_x));
-        lf_cbf_ = dcbf * f_;
-        lg_cbf_ = dcbf * g_;        
-        obj.cbf = matlabFunction(symbolic_cbf, 'vars', {x});
-        obj.lf_cbf = matlabFunction(lf_cbf_, 'vars', {x});
+        dcbf = simplify(jacobian(symbolic_cbf, symbolic_x))
+        f_
+        g_
+        lf_cbf_ = dcbf * f_
+        lg_cbf_ = dcbf * g_      
+        obj.cbf = matlabFunction(symbolic_cbf, 'vars', {x})
+        obj.lf_cbf = matlabFunction(lf_cbf_, 'vars', {x})
         % TODO: add sanity check of relative degree.
-        obj.lg_cbf = matlabFunction(lg_cbf_, 'vars', {x});
+        obj.lg_cbf = matlabFunction(lg_cbf_, 'vars', {x})
     end
 
     % Obtaining Lie derivatives of CLF.    
     if ~isempty(symbolic_clf)
-        dclf = simplify(jacobian(symbolic_clf, symbolic_x));
-        lf_clf_ = dclf * f_;
-        lg_clf_ = dclf * g_;
-        obj.clf = matlabFunction(symbolic_clf, 'vars', {x});                       
-        obj.lf_clf = matlabFunction(lf_clf_, 'vars', {x});
+        dclf = simplify(jacobian(symbolic_clf, symbolic_x))
+        f_
+        g_
+        lf_clf_ = dclf * f_
+        lg_clf_ = dclf * g_
+        obj.clf = matlabFunction(symbolic_clf, 'vars', {x})                      
+        obj.lf_clf = matlabFunction(lf_clf_, 'vars', {x})
         % TODO: add sanity check of relative degree.
-        obj.lg_clf = matlabFunction(lg_clf_, 'vars', {x});        
+        obj.lg_clf = matlabFunction(lg_clf_, 'vars', {x})     
     end
 end

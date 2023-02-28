@@ -38,12 +38,12 @@ function [u, slack, B, V, feas, comp_time] = ctrlCbfClfQp(obj, x, u_ref, with_sl
     tstart = tic;
     x
     V = obj.clf(x)
-    LfV = obj.lf_clf(x)
-    LgV = obj.lg_clf(x)
+    LfV = sum(obj.lf_clf(x))
+    LgV = sum(obj.lg_clf(x))
 
     B = obj.cbf(x)
-    LfB = obj.lf_cbf(x)
-    LgB = obj.lg_cbf(x)
+    LfB = sum(obj.lf_cbf(x))
+    LgB = sum(obj.lg_cbf(x))
         
     %% Constraints: A[u; slack] <= b
     if with_slack

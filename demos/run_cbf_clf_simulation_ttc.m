@@ -1,46 +1,47 @@
 clear all; close all;
 
-dt = 0.02;
-sim_t = 50;
-x0 = [10; 0; 100];
+dt = 0.1;
+sim_t = 100;
+x0 = [24;20];
 
 %% Parameters are from 
 % Aaron Ames et al. Control Barrier Function based Quadratic Programs 
 % with Application to Adaptive Cruise Control, CDC 2014, Table 1.
 
-params.v0 = 12;
-params.vd = 14;
-params.m  = 1650;
-params.g = 9.81;
-params.f0 = 0.1;
-params.f1 = 5;
-params.f2 = 0.25;
-params.ca = 0.3;
-params.cd = 0.3;
-params.T = 1.8;
+% params.v0 = 30; %12;  % safety
+params.vd = [25 30]; %14;  % reference
+% params.zd = 10;
+% params.m  = 1650;
+% params.g = 9.81;
+% params.f0 = 0.1;
+% params.f1 = 5;
+% params.f2 = 0.25;
+% params.ca = 0.3;
+% params.cd = 0.3;
+% params.T = 1.8;
 
-params.u_max = params.ca * params.m * params.g;
-params.u_min  = -params.cd * params.m * params.g;
+params.u_max = 36;%params.ca * params.m * params.g;
+params.u_min  = -36;%-params.cd * params.m * params.g;
 
-params.clf.rate = 5;
-params.cbf.rate = 5;
+% params.clf.rate = 5;
+% params.cbf.rate = 5;
 
 
-params.weight.input = 2/params.m^2;
-params.weight.slack = 2e-2;
+params.weight.input = 5; %2/params.m^2;
+params.weight.slack = 0.001; %0.0000002; %2e-2;
 
 %%
-accSys = ACC(params);
+accSys = TTC(params);
 
 odeFun = @accSys.dynamics;
-controller = @accSys.ctrlCbfClfQp_1;
+controller = @accSys.ctrlCbfClfQp;
 odeSolver = @ode45;
 
 total_k = ceil(sim_t / dt);
 x = x0;
 t = 0;   
 % initialize traces.
-xs = zeros(total_k, 3);
+xs = zeros(total_k, 2);
 ts = zeros(total_k, 1);
 us = zeros(total_k-1, 1);
 slacks = zeros(total_k-1, 1);
@@ -51,10 +52,10 @@ xs(1, :) = x0';
 ts(1) = t;
 for k = 1:total_k-1
     t;
-    Fr = accSys.getFr(x);
+%     Fr = accSys.getFr(x);
     % Determine control input.
 %     [u, slack, h, V] = controller(x, Fr);
-    [u, slack, B, V] = controller(x, Fr);
+    [u, slack, B, V] = controller(x, 0);
     us(k, :) = u';
     slacks(k, :) = slack;
 %     hs(k) = h;
@@ -62,7 +63,7 @@ for k = 1:total_k-1
     Vs(k) = V;
 
     % Run one time step propagation.
-    [ts_temp, xs_temp] = odeSolver(@(t, s) odeFun(t, s, u), [t t+dt], x);
+    [ts_temp, xs_temp] = odeSolver(@(t, s) odeFun(t, s, u), [t t+dt], x)
     x = xs_temp(end, :)';
 
     xs(k+1, :) = x';
@@ -84,23 +85,25 @@ function plot_results(ts, xs, us, slacks, Bs, Vs, params)
     
     figure(1);
     subplot(6,1,1);
-    p = plot(ts, xs(:, 2));
+    p = plot(ts, xs(:, 1));
     p.Color = blue;
     p.LineWidth = 1.5;
     hold on;
-    plot(ts, params.vd*ones(size(ts, 1), 1), 'k--');
-    ylabel("v (m/s)");
-    title("State - Velocity");
+    plot(ts, params.vd(1)*ones(size(ts, 1), 1), 'k--');
+    ylabel("p (m)");
+    title("State - position");
     set(gca,'FontSize',14);
     grid on;    
     
 
     subplot(6,1,2);
-    p = plot(ts, xs(:, 3));
+    p = plot(ts, xs(:, 2));
     p.Color = magenta;
     p.LineWidth = 1.5;
-    ylabel("z (m)");
-    title("State - Distance to desired spacing from lead vehicle");
+    hold on;
+    plot(ts, params.vd(2)*ones(size(ts, 1), 1), 'k--');
+    ylabel("v (m/s)");
+    title("State - velocity");
     set(gca, 'FontSize', 14);
     grid on;    
     
@@ -111,7 +114,7 @@ function plot_results(ts, xs, us, slacks, Bs, Vs, params)
     plot(ts(1:end-1), params.u_max*ones(size(ts, 1)-1, 1), 'k--');
     plot(ts(1:end-1), params.u_min*ones(size(ts, 1)-1, 1), 'k--');
     ylabel("u(N)");
-    title("Control Input - Wheel Force");    
+    title("Control Input -acceleration");    
     set(gca, 'FontSize', 14);
     grid on;    
 
