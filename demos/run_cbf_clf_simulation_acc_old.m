@@ -1,16 +1,15 @@
 clear all; close all;
 
 dt = 0.02;
-sim_t = 0.04;
-x0 = [10; 0; 100];
+sim_t = 20;
+x0 = [0; 20; 100];
 
 %% Parameters are from 
 % Aaron Ames et al. Control Barrier Function based Quadratic Programs 
 % with Application to Adaptive Cruise Control, CDC 2014, Table 1.
 
-params.v0 = 12;%12;  %reference
-params.vd = 24; %14; %safety
-params.zd = 10;
+params.v0 = 14;
+params.vd = 24;
 params.m  = 1650;
 params.g = 9.81;
 params.f0 = 0.1;
@@ -46,20 +45,17 @@ ts = zeros(total_k, 1);
 us = zeros(total_k-1, 1);
 slacks = zeros(total_k-1, 1);
 hs = zeros(total_k-1, 1);
-Bs = zeros(total_k-1, 1);
 Vs = zeros(total_k-1, 1);
 xs(1, :) = x0';
 ts(1) = t;
 for k = 1:total_k-1
-    t;
+    t
     Fr = accSys.getFr(x);
     % Determine control input.
-%     [u, slack, h, V] = controller(x, Fr);
-    [u, slack, B, V] = controller(x, Fr);
+    [u, slack, h, V] = controller(x, Fr);        
     us(k, :) = u';
     slacks(k, :) = slack;
-%     hs(k) = h;
-    Bs(k) = B;
+    hs(k) = h;
     Vs(k) = V;
 
     % Run one time step propagation.
@@ -71,9 +67,10 @@ for k = 1:total_k-1
     t = t + dt;
 end
 
-plot_results(ts, xs, us, slacks, Bs, Vs, params)
+plot_results(ts, xs, us, slacks, hs, Vs, params)
 
-function plot_results(ts, xs, us, slacks, Bs, Vs, params)
+
+function plot_results(ts, xs, us, slacks, hs, Vs, params)
     fig_sz = [10 15]; 
     plot_pos = [0 0 10 15];
     yellow = [0.998, 0.875, 0.529];
@@ -97,11 +94,11 @@ function plot_results(ts, xs, us, slacks, Bs, Vs, params)
     
 
     subplot(6,1,2);
-    p = plot(ts, xs(:, 1));
+    p = plot(ts, xs(:, 3));
     p.Color = magenta;
     p.LineWidth = 1.5;
     ylabel("z (m)");
-    title("State - Distance to desired spacing from lead vehicle");
+    title("State - Distance to lead vehicle");
     set(gca, 'FontSize', 14);
     grid on;    
     
@@ -127,11 +124,10 @@ function plot_results(ts, xs, us, slacks, Bs, Vs, params)
 
     
     subplot(6,1,5);
-    p = plot(ts(1:end-1), Bs);
+    p = plot(ts(1:end-1), hs);
     p.Color = navy;
     p.LineWidth = 1.5;
-%     ylabel("CBF (h(x))");
-    ylabel("CBF (B(x))");
+    ylabel("CBF (h(x))");
     title("CBF");    
     set(gca, 'FontSize', 14);
         grid on;    

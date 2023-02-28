@@ -36,25 +36,34 @@ function [u, slack, B, V, feas, comp_time] = ctrlCbfClfQp(obj, x, u_ref, with_sl
     end                
 
     tstart = tic;
-    V = obj.clf(x);
-    LfV = obj.lf_clf(x);
-    LgV = obj.lg_clf(x);
+    x
+    V = obj.clf(x)
+    LfV = obj.lf_clf(x)
+    LgV = obj.lg_clf(x)
 
-    B = obj.cbf(x);
-    LfB = obj.lf_cbf(x);
-    LgB = obj.lg_cbf(x);
+    B = obj.cbf(x)
+    LfB = obj.lf_cbf(x)
+    LgB = obj.lg_cbf(x)
         
     %% Constraints: A[u; slack] <= b
     if with_slack
         % CLF and CBF constraints.
+%         A = [LgV, -1;
+%         -LgB, 0];
+%         b = [-LfV - obj.params.clf.rate * V;
+%             LfB + obj.params.cbf.rate * B];      
+% with BF as CBF i.e. B=-h
         A = [LgV, -1;
-        -LgB, 0];
-        b = [-LfV - obj.params.clf.rate * V;
-            LfB + obj.params.cbf.rate * B];                
+        LgB, 0];
+        b = [-LfV;
+            -LfB ];  
         % Add input constraints if u_max or u_min exists.
         if isfield(obj.params, 'u_max')
+%             A = [A; ones(obj.udim), zeros(obj.udim, 1);];
             A = [A; eye(obj.udim), zeros(obj.udim, 1);];
             if size(obj.params.u_max, 1) == 1
+                b
+                obj.params.u_max * ones(obj.udim, 1)
                 b = [b; obj.params.u_max * ones(obj.udim, 1)];
             elseif size(obj.params.u_max, 1) == obj.udim
                 b = [b; obj.params.u_max];
@@ -63,6 +72,7 @@ function [u, slack, B, V, feas, comp_time] = ctrlCbfClfQp(obj, x, u_ref, with_sl
             end
         end
         if isfield(obj.params, 'u_min')
+%             A = [A; -ones(obj.udim), zeros(obj.udim, 1);];
             A = [A; -eye(obj.udim), zeros(obj.udim, 1);];
             if size(obj.params.u_min, 1) == 1
                 b = [b; -obj.params.u_min * ones(obj.udim, 1)];
@@ -74,12 +84,17 @@ function [u, slack, B, V, feas, comp_time] = ctrlCbfClfQp(obj, x, u_ref, with_sl
         end        
     else
         % CLF and CBF constraints.
-        A = [LgV; -LgB];
+%         A = [LgV; -LgB];
+%         b = [-LfV - obj.params.clf.rate * V;
+%             LfB + obj.params.cbf.rate * B];  
+% with BF as CBF i.e. B=-h
+        A = [LgV, -1;
+        LgB, 0];
         b = [-LfV - obj.params.clf.rate * V;
-            LfB + obj.params.cbf.rate * B];                
+            -LfB - obj.params.cbf.rate * B];
         % Add input constraints if u_max or u_min exists.
         if isfield(obj.params, 'u_max')
-            A = [A; eye(obj.udim)];
+            A = [A; ones(obj.udim)];
             if size(obj.params.u_max, 1) == 1
                 b = [b; obj.params.u_max * ones(obj.udim, 1)];
             elseif size(obj.params.u_max, 1) == obj.udim
@@ -89,7 +104,7 @@ function [u, slack, B, V, feas, comp_time] = ctrlCbfClfQp(obj, x, u_ref, with_sl
             end
         end
         if isfield(obj.params, 'u_min')
-            A = [A; -eye(obj.udim)];
+            A = [A; -ones(obj.udim)];
             if size(obj.params.u_min, 1) == 1
                 b = [b; -obj.params.u_min * ones(obj.udim, 1)];
             elseif size(obj.params.u_min, 1) == obj.udim
@@ -119,10 +134,13 @@ function [u, slack, B, V, feas, comp_time] = ctrlCbfClfQp(obj, x, u_ref, with_sl
         options =  optimset('Display','off');
     end
     if with_slack         
-        % cost = 0.5 [u' slack] H [u; slack] + f [u; slack]
-        H = [weight_input, zeros(obj.udim, 1);
+        % cost = 0.5 abs(u_max-u)' H abs(u-u_min)
+%         H = [weight_input, zeros(obj.udim, 1);
+%             zeros(1, obj.udim), obj.params.u_max/obj.params.weight.slack];
+H = [weight_input, zeros(obj.udim, 1);
             zeros(1, obj.udim), obj.params.weight.slack];
-        f_ = [-weight_input * u_ref; 0];
+%         f_ = [-2*obj.params.u_max; 0];
+    f_ = [-weight_input*obj.params.u_max; 0];
         [u_slack, ~, exitflag, ~] = quadprog(H, f_, A, b, [], [], [], [], [], options);
         if exitflag == -2
             feas = 0;
@@ -130,12 +148,18 @@ function [u, slack, B, V, feas, comp_time] = ctrlCbfClfQp(obj, x, u_ref, with_sl
         else
             feas = 1;
         end
+        u_slack
+        obj.udim
         u = u_slack(1:obj.udim);
         slack = u_slack(end);
     else
-        % cost = 0.5 u' H u + f u
-        H = weight_input;
-        f_ = -weight_input * u_ref;
+%         % cost = 0.5 u' H u + f u
+%         H = weight_input;
+%         f_ = -weight_input * u_ref;
+        % cost = 0.5 abs(u_max-u)' H abs(u-u_min)
+        H = [weight_input, zeros(obj.udim, 1);
+            zeros(1, obj.udim), obj.params.u_max/obj.params.weight.slack];
+        f_ = [-2*obj.params.u_max; 0];
         [u, ~, exitflag, ~] = quadprog(H, f_, A, b, [], [], [], [], [], options);
         if exitflag == -2
             feas = 0;
@@ -145,5 +169,5 @@ function [u, slack, B, V, feas, comp_time] = ctrlCbfClfQp(obj, x, u_ref, with_sl
         end
         slack = [];
     end
-    comp_time = toc(tstart);
+    comp_time = toc(tstart)
 end

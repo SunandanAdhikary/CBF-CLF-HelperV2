@@ -42,11 +42,11 @@ classdef CtrlAffineSys < handle
             %% TODO: Add checking input constraint.
             %% TODO: Add existence of essential fields (e.g. params.weight.slack)
             [x, f, g] = obj.defineSystem(params);
-            clf = obj.defineClf(params, x)
-%             clf
-            cbf = obj.defineCbf(params, x)
-%             cbf
-            obj.initSys(x, f, g, cbf, clf)
+            clf = obj.defineClf(params, x);
+            clf
+            cbf = obj.defineCbf(params, x);
+            cbf
+            obj.initSys(x, f, g, cbf, clf);
         end
         
         %% Defining class function handles.
@@ -74,7 +74,7 @@ classdef CtrlAffineSys < handle
             % Output: dx: \dot(x)
 %             x
 %             obj.f(x)
-            dx = obj.f(x) + obj.g(x) * u;
+            dx = obj.f(x)*x + obj.g(x) * u;
         end
     end
 end
